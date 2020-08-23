@@ -1,13 +1,20 @@
 package com.bank.bankingapi.services;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
+import javax.annotation.PostConstruct;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import com.bank.bankingapi.Entities.Branch;
+import com.bank.bankingapi.Entities.Customer;
 import com.bank.bankingapi.Entities.HeadOffice;
 import com.bank.bankingapi.Entities.Transaction;
 import com.bank.bankingapi.Entities.accounts.BankAccount;
@@ -15,15 +22,21 @@ import com.bank.bankingapi.Exceptions.BankingException;
 import com.bank.bankingapi.Status.EntityCreationSatus;
 import com.bank.bankingapi.Status.EntityType;
 import com.bank.bankingapi.Status.ResponceWrapper;
+import com.bank.bankingapi.Status.Status;
 import com.bank.bankingapi.dal.BankingDAL;
 import com.bank.bankingapi.dto.AccountDTO;
 import com.bank.bankingapi.dto.TransactionDTO;
+import com.bank.bankingapi.mapping.EntityMapper;
+import com.bank.bankingapi.pojo.BankAccountPojo;
+import com.bank.bankingapi.pojo.BranchPojo;
+import com.bank.bankingapi.pojo.CustomerPojo;
 
 
 @Service
 public class BankService {
 	HeadOffice ho;
-
+	@Autowired
+	EntityMapper mapper;
 	@Autowired
 	BankingDAL dal;
 	public EntityCreationSatus createHeadOffice()
@@ -35,24 +48,115 @@ public class BankService {
 				{
 					ho = new HeadOffice("SBI");
 					dal.storeHeadOffice(ho);
+					return EntityCreationSatus.createStatusObject(true, "Head office "+ho.getName()+" created successfully", EntityType.HeadOffice);
 				}
 			}
 		}
 		
 		return EntityCreationSatus.createStatusObject(false, "Head office "+ho.getName()+" already exist", EntityType.HeadOffice);
 	}
-	public BankService() {
-		
+	@PostConstruct
+	public void initializeService()
+	{
+		Map<String, List<Transaction>> transByAccId = new HashMap<String, List<Transaction>>();
+		Map<String, List<Branch>> branchesbyHeadOffice = new HashMap<String, List<Branch>>();
+		Map<String, List<Customer>> customersByranch = new HashMap<String, List<Customer>>();
+		Map<String, List<BankAccount>> accountsByBranch = new HashMap<String, List<BankAccount>>();
+		Map<String, List<BankAccount>> accountByCust = new HashMap<String, List<BankAccount>>();
+		dal.loadAllTransactionsFromDB().forEach(s->
+		{
+			System.out.println(s);
+			BankAccountPojo acc = s.getAccount();
+			CustomerPojo cust = acc.getCustomer();
+			BranchPojo branch = acc.getBranch();
+			if(transByAccId.containsKey(acc.getAccountnumber()))
+			{
+				transByAccId.get(acc.getAccountnumber()).add(mapper.getTransactionFromDBObject(s));
+			}
+			else
+			{
+				List<Transaction> l = new ArrayList<Transaction>(); 
+				l.add(mapper.getTransactionFromDBObject(s));
+				transByAccId.put(acc.getAccountnumber(), l);
+			}
+			BankAccount accEntity = mapper.getBankAccountFromDBObject(acc);
+			if(accountByCust.containsKey(cust.getPanNumber()))
+			{
+				accountByCust.get(cust.getPanNumber()).add(accEntity);
+			}
+			else
+			{
+				List<BankAccount> l = new ArrayList<BankAccount>();
+				l.add(accEntity);
+				accountByCust.put(cust.getPanNumber(), l);
+			}
+			
+			if(accountsByBranch.containsKey(branch.getBranchID()))
+			{
+				accountsByBranch.get(branch.getBranchID()).add(accEntity);
+			}
+			else
+			{
+				List<BankAccount> l = new ArrayList<BankAccount>();
+				l.add(accEntity);
+				accountsByBranch.put(branch.getBranchID(), l);
+			}
+			
+			if(customersByranch.containsKey(branch.getBranchID()))
+			{
+				customersByranch.get(branch.getBranchID()).add(mapper.getCustomerFromDBObject(cust));
+			}
+			else
+			{
+				List<Customer> l = new ArrayList<Customer>();
+				l.add(mapper.getCustomerFromDBObject(cust));
+				customersByranch.put(branch.getBranchID(), l);
+			}
+			
+
+			if(branchesbyHeadOffice.containsKey(branch.getHeadOffice().getName()))
+			{
+				branchesbyHeadOffice.get(branch.getHeadOffice().getName()).add(mapper.getBranchFromDBObject(branch));
+			}
+			else
+			{
+				List<Branch> l = new ArrayList<Branch>();
+				l.add(mapper.getBranchFromDBObject(branch));
+				branchesbyHeadOffice.put(branch.getHeadOffice().getName(), l);
+			}
+		});
+		if(branchesbyHeadOffice.size()==1)
+		{
+			String hoName = branchesbyHeadOffice.keySet().iterator().next();
+			ho = new HeadOffice(hoName);
+			
+			accountsByBranch.forEach((k,v)->{
+				v.forEach(a->{
+					Collections.sort(transByAccId.get(a.getAccountnumber()), (x,y)->x.getSequence()-y.getSequence());
+					a.loadTransactions(transByAccId.get(a.getAccountnumber()));
+				});
+			});
+			customersByranch.forEach((k,v)->{
+				v.forEach(c->{
+					c.loadAccounts(accountByCust.get(c.getPanNumber()));
+				});
+			});
+			branchesbyHeadOffice.forEach((k,v)->{
+				v.forEach(b->{
+					b.loadBranchFromDB(customersByranch.get(b.getBranchID()), accountsByBranch.get((b.getBranchID())));
+				});
+				
+			});
+			ho.LoadBranches(branchesbyHeadOffice.get(hoName));
+		}
 	}
-	
 	public EntityCreationSatus createBranchByName(String branchName)
 	{
 		if(ho==null)
 			return EntityCreationSatus.createStatusObject(false, "head office is not created, create head office first.", EntityType.Branch);
 		if(StringUtils.isEmpty(branchName))
 			return EntityCreationSatus.createStatusObject(false, "Branch name is empty", EntityType.Branch);
-		EntityCreationSatus response =  ho.createBranch(branchName);
-		return null;
+		return ho.createBranch(branchName);
 	}
 	
 	public EntityCreationSatus createBankAccount(AccountDTO dto)
@@ -94,51 +198,24 @@ public class BankService {
 		}
 	}
 	
-	public ResponceWrapper<BankAccount> withdrawAmmount(TransactionDTO dto)
+	public ResponceWrapper<Status> withdrawAmmount(TransactionDTO dto)
 	{
-		if(StringUtils.isEmpty(dto.getAccountNumber()))
-		{
-			return new ResponceWrapper<BankAccount>(false, new ArrayList<BankAccount>(), "account number is empty, please pass some value in it");
-		}
-		if (StringUtils.isEmpty(dto.getBranchNuber())) {
-			return new ResponceWrapper<BankAccount>(false, new ArrayList<BankAccount>(), "branch id number is empty, please pass some value in it");
-		}
-		if (dto.getTranAmmount()==0) {
-			return new ResponceWrapper<BankAccount>(false, new ArrayList<BankAccount>(), "transaction ammount is empty, please pass some value in it");
-		}
-		List<BankAccount> account = new ArrayList<BankAccount>();
 		try {
-			account = new ArrayList<BankAccount>();
-			account.add(ho.getBranchByBranchID(dto.getBranchNuber()).getAccountByAccountNumber(dto.getAccountNumber()));
-			account.get(0).withdraw(dto.getTranAmmount());
+			ho.getBranchByBranchID(dto.getBranchNuber()).getAccountByAccountNumber(dto.getAccountNumber()).withdraw(dto.getTranAmmount());
+			return new ResponceWrapper<Status>(true, new ArrayList<Status>(), "ammount withdrawn successfully");
 		} catch (BankingException e) {
-			return new ResponceWrapper<BankAccount>(false, new ArrayList<BankAccount>(), e.getMessage());
+			return new ResponceWrapper<Status>(false, new ArrayList<Status>(), e.getMessage());
 		}
-		
-		return new ResponceWrapper<BankAccount>(true,account,"");
 	}
 
-	public ResponceWrapper<BankAccount> depositAmmount(TransactionDTO dto)
+	public ResponceWrapper<Status> depositAmmount(TransactionDTO dto)
 	{
-		if(StringUtils.isEmpty(dto.getAccountNumber()))
-		{
-			return new ResponceWrapper<BankAccount>(false, new ArrayList<BankAccount>(), "account number is empty, please pass some value in it");
-		}
-		if (StringUtils.isEmpty(dto.getBranchNuber())) {
-			return new ResponceWrapper<BankAccount>(false, new ArrayList<BankAccount>(), "branch id number is empty, please pass some value in it");
-		}
-		if (dto.getTranAmmount()==0) {
-			return new ResponceWrapper<BankAccount>(false, new ArrayList<BankAccount>(), "transaction ammount is empty, please pass some value in it");
-		}
-		List<BankAccount> account = new ArrayList<BankAccount>();
 		try {
-			account = new ArrayList<BankAccount>();
-			account.add(ho.getBranchByBranchID(dto.getBranchNuber()).getAccountByAccountNumber(dto.getAccountNumber()));
-			account.get(0).deposit(dto.getTranAmmount());
+			ho.getBranchByBranchID(dto.getBranchNuber()).getAccountByAccountNumber(dto.getAccountNumber()).deposit(dto.getTranAmmount());
+			return new ResponceWrapper<Status>(true, new ArrayList<Status>(), "ammount deposited successfully");
 		} catch (BankingException e) {
-			return new ResponceWrapper<BankAccount>(false, new ArrayList<BankAccount>(), e.getMessage());
+			return new ResponceWrapper<Status>(false, new ArrayList<Status>(), e.getMessage());
 		}
-		return new ResponceWrapper<BankAccount>(true,account,"");
 	}
 	
 }

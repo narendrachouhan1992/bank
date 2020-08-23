@@ -4,12 +4,13 @@ public class Transaction {
 	private String transactionID;
 	private double ammount;
 	private TransactionType type;
-	
-	public Transaction(String transactionID, Double ammount, TransactionType type) {
+	private int sequence;
+	public Transaction(String transactionID, Double ammount, TransactionType type, int sequence) {
 		super();
 		this.transactionID = transactionID;
 		this.ammount = ammount;
 		this.type = type;
+		this.sequence = sequence;
 	}
 	
 	@Override
@@ -25,6 +26,10 @@ public class Transaction {
 	}
 	public TransactionType getType() {
 		return type;
+	}
+
+	public int getSequence() {
+		return sequence;
 	}
  
 }

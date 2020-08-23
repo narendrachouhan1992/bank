@@ -24,9 +24,9 @@ public final class CurrentAccount extends BankAccount {
 		if (ammount < 0)
 			throw new NegativeAmmountException("ammount to deposit is not correct:" + ammount);
 		if (currentBalance - ammount > minimumBalance) {
-			synchronized (this) {
+			synchronized (this) { 
 				Transaction t = new Transaction(BankUtils.getInstance().generateUniqueTransactionNum(), ammount,
-						TransactionType.withdraw);
+						TransactionType.withdraw, transactions.size());
 				this.transactions.add(t);
 				currentBalance -= ammount;
 				System.out.println("amount withdrawn:" + ammount + " current Balance:" + this.currentBalance);
@@ -50,7 +50,7 @@ public final class CurrentAccount extends BankAccount {
 		if (ammount > 0) {
 			synchronized (this) {
 				Transaction t = new Transaction(BankUtils.getInstance().generateUniqueTransactionNum(), ammount,
-						TransactionType.deposit);
+						TransactionType.deposit, transactions.size());
 				this.transactions.add(t);
 				currentBalance += ammount;
 				System.out.println("amount deposited:" + ammount + " current Balance:" + this.currentBalance);

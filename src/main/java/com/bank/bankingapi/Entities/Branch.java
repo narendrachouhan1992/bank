@@ -89,6 +89,15 @@ public class Branch {
 		message.append("bank account created with accountID:"+accountID);
 		return EntityCreationSatus.createStatusObject(true, message.toString(), EntityType.Account);
 	}
+	public void loadBranchFromDB(List<Customer> c, List<BankAccount> ba)
+	{
+		c.forEach(s->{
+			customers.put(s.getPanNumber(), s);
+		});
+		ba.forEach(s->{
+			accounts.put(s.getAccountnumber(), s);
+		});
+	}
 	
 	public Branch(String branchID, String name) {
 		super();

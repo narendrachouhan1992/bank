@@ -65,6 +65,6 @@ public class EntityMapper {
 	}
 	public Transaction getTransactionFromDBObject(TransactionPojo pojo)
 	{
-		return new Transaction(pojo.getTransactionId(), pojo.getTransactionAmmount(), pojo.getType());
+		return new Transaction(pojo.getTransactionId(), pojo.getTransactionAmmount(), pojo.getType(), pojo.getSequence());
 	}
 }

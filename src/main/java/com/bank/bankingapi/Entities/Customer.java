@@ -24,6 +24,10 @@ public class Customer{
 		System.out.println("bank account with ID:"+account.getAccountnumber()+" added to customer:"+panNumber);
 		return Status.SUCCESS;
 	}
+	public void loadAccounts(List<BankAccount> accs)
+	{
+		this.accounts=accs;
+	}
 	@Override
 	public String toString() {
 		return "Customer [accounts=" + accounts + ", panNumber=" + panNumber + "]";

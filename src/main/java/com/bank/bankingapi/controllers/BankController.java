@@ -9,9 +9,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.bank.bankingapi.Entities.Branch;
 import com.bank.bankingapi.Entities.Transaction;
-import com.bank.bankingapi.Entities.accounts.BankAccount;
 import com.bank.bankingapi.Status.EntityCreationSatus;
 import com.bank.bankingapi.Status.ResponceWrapper;
+import com.bank.bankingapi.Status.Status;
 import com.bank.bankingapi.dto.AccountDTO;
 import com.bank.bankingapi.dto.TransactionDTO;
 import com.bank.bankingapi.services.BankService;
@@ -56,12 +56,12 @@ public class BankController {
 	}
 	
 	@RequestMapping(method = RequestMethod.POST,value="/withdrawAmmount")
-	public ResponceWrapper<BankAccount> withdrawAmmount(@RequestBody TransactionDTO dto)
+	public ResponceWrapper<Status> withdrawAmmount(@RequestBody TransactionDTO dto)
 	{
 		return bankService.withdrawAmmount(dto);
 	}
 	@RequestMapping(method = RequestMethod.POST,value="/depositAmmount")
-	public ResponceWrapper<BankAccount> depositAmmount(@RequestBody TransactionDTO dto)
+	public ResponceWrapper<Status> depositAmmount(@RequestBody TransactionDTO dto)
 	{
 		return bankService.depositAmmount(dto);
 	}

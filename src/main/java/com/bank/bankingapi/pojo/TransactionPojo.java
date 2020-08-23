@@ -12,6 +12,7 @@ public class TransactionPojo {
 	private String transactionId;
 	private double transactionAmmount;
 	private TransactionType type;
+	private int sequence; 
 	@ManyToOne
 	private BankAccountPojo account;
 	public String getTransactionId() {
@@ -37,5 +38,11 @@ public class TransactionPojo {
 	}
 	public void setAccount(BankAccountPojo account) {
 		this.account = account;
+	}
+	public int getSequence() {
+		return sequence;
+	}
+	public void setSequence(int sequence) {
+		this.sequence = sequence;
 	}
 }

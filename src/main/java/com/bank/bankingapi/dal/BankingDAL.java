@@ -17,10 +17,12 @@ import com.bank.bankingapi.Entities.HeadOffice;
 import com.bank.bankingapi.Entities.Transaction;
 import com.bank.bankingapi.Entities.accounts.BankAccount;
 import com.bank.bankingapi.Status.Status;
+import com.bank.bankingapi.dto.TransactionDTO;
 import com.bank.bankingapi.mapping.EntityMapper;
 import com.bank.bankingapi.pojo.BankAccountPojo;
 import com.bank.bankingapi.pojo.BranchPojo;
 import com.bank.bankingapi.pojo.HeadOfficePojo;
+import com.bank.bankingapi.pojo.TransactionPojo;
 import com.bank.bankingapi.repo.BankAccountRepository;
 import com.bank.bankingapi.repo.BranchRepository;
 import com.bank.bankingapi.repo.CustomerRepository;
@@ -57,34 +59,33 @@ public class BankingDAL {
 		branchRepo.save(pojo);
 		return Status.SUCCESS;
 	}
-	public HeadOffice loadHeadOfficeFromDB()
-	{
-		Iterator<HeadOfficePojo> office;
-		List<Transaction> trans = new ArrayList<Transaction>();
-		Map<String, BankAccount> accounts = new HashMap<String, BankAccount>();
-		trans.forEach(s->{
-			
-		});
-		
-		HeadOffice ho;
-		if(office.hasNext())
-		{
-			ho = mapper.getHeadOfficeFromDBObj(office.next());
-			List<Branch> branches = branchRepo.findAllByHeadOfficeName(ho.getName()).stream().map(b->mapper.getBranchFromDBObject(b)).collect(Collectors.toList());
-			for (Branch branch : branches) {
-				List<BankAccountPojo> pojos =  bankAccountRepo.findAllByBranchBranchID(branch.getBranchID());
-				Map<String,BankAccount> accounts = pojos.stream().map(s->getAccountObject(s)).collect(Collectors.toMap(e->e.getAccountnumber(), e->e));
-				Map<String, Customer> customers = customerRepo.findAllByBranchBranchID(branch.getBranchID()).stream().map(s->mapper.getCustomerFromDBObject(s)).collect(Collectors.toMap(s->s.getPanNumber(), s->s));
-				
-			}
-			
-		}
-		return null;
-	}
-	private BankAccount getAccountObject(BankAccountPojo pojo)
-	{
-		BankAccount acc = mapper.getBankAccountFromDBObject(pojo);
-		acc.loadTransactions(transactionRepo.findAllByAccountAccountNumber(pojo.getAccountnumber()).parallelStream().map(s->mapper.getTransactionFromDBObject(s)).collect(Collectors.toList()));
-		return acc;
+//	public HeadOffice loadHeadOfficeFromDB()
+//	{
+//		Iterator<HeadOfficePojo> office;
+//		List<Transaction> trans = new ArrayList<Transaction>();
+//		Map<String, BankAccount> accounts = new HashMap<String, BankAccount>();
+//		trans.forEach(s->{//		if(office.hasNext())
+//		{
+//			ho = mapper.getHeadOfficeFromDBObj(office.next());
+//			List<Branch> branches = branchRepo.findAllByHeadOfficeName(ho.getName()).stream().map(b->mapper.getBranchFromDBObject(b)).collect(Collectors.toList());
+//			for (Branch branch : branches) {
+//				List<BankAccountPojo> pojos =  bankAccountRepo.findAllByBranchBranchID(branch.getBranchID());
+//				Map<String,BankAccount> accounts = pojos.stream().map(s->getAccountObject(s)).collect(Collectors.toMap(e->e.getAccountnumber(), e->e));
+//				Map<String, Customer> customers = customerRepo.findAllByBranchBranchID(branch.getBranchID()).stream().map(s->mapper.getCustomerFromDBObject(s)).collect(Collectors.toMap(s->s.getPanNumber(), s->s));
+//				
+//			}
+//			
+//		}
+//		return null;
+//	}
+//			
+//		});
+//		
+//		HeadOffice ho;
+
+	public List<TransactionPojo> loadAllTransactionsFromDB() {
+		List< TransactionPojo> trans = new ArrayList<TransactionPojo>();
+		transactionRepo.findAll().forEach(trans::add);
+		return trans;
 	}
 }
